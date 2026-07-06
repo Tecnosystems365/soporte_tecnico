@@ -4,12 +4,12 @@ import os
 from datetime import datetime, timedelta
 
 def conectar_db():
-    # PROGRAMACIÓN: Definimos la ruta exacta para que coincida con el Administrador
     ruta_carpeta = os.path.join(os.path.expanduser("~"), "Documents", "AppTickets")
     if not os.path.exists(ruta_carpeta):
         os.makedirs(ruta_carpeta)
     ruta_db = os.path.join(ruta_carpeta, "tickets.db")
-    return sqlite3.connect(ruta_db, check_same_thread=False)
+    # isolation_level=None fuerza a SQLite a guardar los datos inmediatamente (Autocommit)
+    return sqlite3.connect(ruta_db, check_same_thread=False, isolation_level=None)
 
 st.set_page_config(page_title="Portal de Tickets TI", layout="centered")
 
@@ -36,14 +36,13 @@ with st.form("form_cliente", clear_on_submit=True):
             ahora = datetime.now()
             horas_sla = 4 if "Sí" in poliza else 24
             limite = ahora + timedelta(hours=horas_sla)
-            
             foto_bytes = foto.read() if foto is not None else None
             
             cursor.execute('''INSERT INTO tickets (cliente, descripcion, tipo_poliza, fecha_creacion, fecha_limite, estado, foto, comentarios_cierre)
                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
                            (cliente, descripcion, "Con Póliza" if "Sí" in poliza else "Estándar", ahora.strftime("%Y-%m-%d %H:%M"), limite.strftime("%Y-%m-%d %H:%M"), "Pendiente", foto_bytes, ""))
-            conn.commit()
-            conn.close()
-            st.success("¡Tu reporte ha sido recibido con éxito! El panel administrativo ya puede visualizarlo.")
+            
+            conn.close() # Cierre absoluto para liberar el archivo
+            st.success("¡Tu reporte ha sido enviado! Abre el panel de administración y presiona Actualizar.")
         else:
             st.error("Por favor completa los campos obligatorios (*).")
