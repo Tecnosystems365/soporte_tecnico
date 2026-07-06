@@ -1,14 +1,18 @@
 import streamlit as st
 import sqlite3
+import os
 from datetime import datetime, timedelta
 
 def conectar_db():
-    # Se conecta a la base de datos centralizada
-    return sqlite3.connect('tickets.db', check_same_thread=False)
+    # PROGRAMACIÓN: Definimos la ruta exacta para que coincida con el Administrador
+    ruta_carpeta = os.path.join(os.path.expanduser("~"), "Documents", "AppTickets")
+    if not os.path.exists(ruta_carpeta):
+        os.makedirs(ruta_carpeta)
+    ruta_db = os.path.join(ruta_carpeta, "tickets.db")
+    return sqlite3.connect(ruta_db, check_same_thread=False)
 
 st.set_page_config(page_title="Portal de Tickets TI", layout="centered")
 
-# Encabezado limpio para el cliente
 st.title("🛠️ Portal de Servicio Técnico TI")
 st.subheader("Escanea y reporta tu falla de inmediato")
 
@@ -25,12 +29,11 @@ with st.form("form_cliente", clear_on_submit=True):
             conn = conectar_db()
             cursor = conn.cursor()
             
-            # Asegurar la creación de la tabla
             cursor.execute('''CREATE TABLE IF NOT EXISTS tickets 
-                (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente TEXT, descripcion TEXT, tipo_poliza TEXT, fecha_creacion TEXT, fecha_limite TEXT, estado TEXT, foto BLOB, comentarios_cierre TEXT)''')
+                (id INTEGER PRIMARY KEY AUTOINCREMENT, cliente TEXT, descripcion TEXT, tipo_poliza TEXT, 
+                 fecha_creacion TEXT, fecha_limite TEXT, estado TEXT, foto BLOB, comentarios_cierre TEXT)''')
             
             ahora = datetime.now()
-            # Cálculo base de SLA inicial
             horas_sla = 4 if "Sí" in poliza else 24
             limite = ahora + timedelta(hours=horas_sla)
             
@@ -41,6 +44,6 @@ with st.form("form_cliente", clear_on_submit=True):
                            (cliente, descripcion, "Con Póliza" if "Sí" in poliza else "Estándar", ahora.strftime("%Y-%m-%d %H:%M"), limite.strftime("%Y-%m-%d %H:%M"), "Pendiente", foto_bytes, ""))
             conn.commit()
             conn.close()
-            st.success("¡Tu reporte ha sido recibido con éxito! Un ingeniero de soporte tomará el caso.")
+            st.success("¡Tu reporte ha sido recibido con éxito! El panel administrativo ya puede visualizarlo.")
         else:
             st.error("Por favor completa los campos obligatorios (*).")
